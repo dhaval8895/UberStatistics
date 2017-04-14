@@ -1,0 +1,176 @@
+---
+title: "Uber Statistics"
+author: "Dhaval Sawlani"
+date: "February 7, 2017"
+output: html_document
+---
+
+```{r The Setup, cache=TRUE}
+knitr::opts_chunk$set(warning = FALSE, fig.width = 9, fig.height = 6)
+library(dplyr)
+library(lubridate)
+library(DT)
+library(ggplot2)
+library(RColorBrewer)
+```
+
+###Loading the Uber Data for the Year 2015
+
+```{r, cache=TRUE}
+uber_2015 <- read.csv("uber-raw-data-janjune-15.csv")
+```
+
+###Loading the Data for the Year 2014
+
+```{r, cache=TRUE}
+uber_apr <- read.csv("uber-raw-data-apr14.csv")
+uber_may <- read.csv("uber-raw-data-may14.csv")
+uber_jun <- read.csv("uber-raw-data-jun14.csv")
+uber_jul <- read.csv("uber-raw-data-jul14.csv")
+uber_aug <- read.csv("uber-raw-data-aug14.csv")
+uber_sep <- read.csv("uber-raw-data-sep14.csv")
+```
+
+###Binding all the Data into one
+
+```{r, cache=TRUE}
+uber_2014 <- rbind(uber_apr, uber_may, uber_jun, uber_jul, uber_aug, uber_sep)
+uber_2014$Date.Time <- mdy_hms(uber_2014$Date.Time)
+uber_2014$Day <- factor(day(uber_2014$Date.Time))
+uber_2014$Month <- factor(month(uber_2014$Date.Time, label = TRUE))
+uber_2014$Year <- factor(year(uber_2014$Date.Time))
+uber_2014$Weekday <- factor(wday(uber_2014$Date.Time, label = TRUE))
+uber_2014$Hour <- factor(hour(uber_2014$Date.Time))
+uber_2014$Minute <- factor(minute(uber_2014$Date.Time))
+uber_2014$Second <- factor(second(uber_2014$Date.Time))
+datatable(head(uber_2014))
+```
+
+##Uber Trips made Every Day in New York City
+```{r, message=FALSE}
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(RColorBrewer)
+cols <- brewer.pal(8, "Paired")
+pal <- colorRampPalette(cols)
+trips_day <- group_by(uber_2014, Day) %>% summarise(Trips = n())
+datatable(trips_day)
+ggplot(trips_day, aes(Day, Trips)) + geom_bar(stat = "identity", fill = "maroon") +
+    ggtitle("No. of Uber Trips by Day made in New York City")
+trips_day_month <- group_by(uber_2014, Day, Month) %>% summarise(Trips = n())
+ggplot(trips_day_month, aes(Day, Trips, fill = Month)) + geom_bar(stat = "identity") +
+    ggtitle("No. of Uber Trips by Day & Month made in New York City") + scale_y_continuous() +
+      scale_fill_manual(values = pal(6)) + facet_grid(Month ~ .)
+```
+
+##Uber Trips made Every Hour in New York City
+
+```{r, message=FALSE}
+library(dplyr)
+library(DT)
+library(ggplot2)
+library(RColorBrewer)
+cols <- brewer.pal(8, "Dark2")
+pal <- colorRampPalette(cols)
+trips_hour <- group_by(uber_2014, Hour) %>% summarise(Trips = n())
+datatable(trips_hour)
+ggplot(trips_hour, aes(Hour, Trips)) + geom_bar(stat = "identity", fill = "orange") + ggtitle("No. of Uber Trips Happening in New York City Every Hour")
+trips_hour_month <- group_by(uber_2014, Hour, Month) %>% summarise(Trips = n())
+ggplot(trips_hour_month, aes(Hour, Trips, fill = Month)) + geom_bar(stat = "identity") + ggtitle("No. of Uber Trips Happening in New York City Every Hour for Different Months") + scale_y_continuous() + scale_fill_manual(values = pal(6)) + facet_grid(Month ~ .)
+```
+
+##Uber Trips made According to The Days in New York City
+
+```{r, fig.width=8}
+cols <- brewer.pal(8, "Spectral")
+pal <- colorRampPalette(cols)
+trips_wday <- group_by(uber_2014, Weekday) %>% summarise(Trips = n())
+datatable(trips_wday)
+ggplot(trips_wday, aes(Weekday, Trips)) + geom_bar(stat = "identity", fill = "Darkred") + ggtitle("No. of Uber Trips Happening in New York City For Different Days of the Week")
+trips_wday_month <- group_by(uber_2014, Weekday, Month) %>% summarise(Trips = n())
+ggplot(trips_wday_month, aes(Weekday, Trips, fill = Month)) + geom_bar(stat = "identity", position = "dodge") + ggtitle("No. of Uber Trips Happening in New York City for WeekDays of Different Months") + scale_y_continuous() + scale_fill_manual(values = pal(6))
+```
+
+##Uber Trips According to Different BASE in New York City
+
+```{r}
+cols <- brewer.pal(6, "Accent")
+pal <- colorRampPalette(cols)
+trips_base <- group_by(uber_2014, Base) %>% summarise(Trips = n())
+datatable(trips_base)
+ggplot(trips_base, aes(Base, Trips)) + geom_bar(stat = "identity", fill = "Seagreen") + ggtitle("No. of Uber Trips for Varios Base in New York City")
+trips_base_month <- group_by(uber_2014, Base, Month) %>% summarise(Trips = n())
+ggplot(trips_base_month, aes(Base, Trips, fill = Month)) + geom_bar(stat = "identity", position = "dodge") + ggtitle("No. of Uber Trips for Diferent Base-Month in New York City") + scale_y_continuous() + scale_fill_manual(values = pal(6))
+```
+
+##Heatmap for Uber Trips by Day & Hour
+
+```{r}
+trips_hour_day <- group_by(uber_2014, Hour, Day) %>% summarise(Trips = n())
+ggplot(trips_hour_day, aes(Day, Hour, fill = Trips)) + ggtitle("Heatmap of Uber Trips by Day and Hour") + geom_tile(color = "white")
+```
+
+##Heatmap for Uber Trips by Day & Month
+
+```{r}
+##library(reshape2)
+##library(scales)
+##library(plyr)
+##cols <- brewer.pal(4, "Oranges")
+##pals <- colorRampPalette(cols)
+##trips_day_monthm <- melt(trips_day_month)
+##trips_day_monthm <- ddply(trips_day_monthm, .(Day), transform, rescale = rescale(value))
+ggplot(trips_day_month, aes(Day, Month, fill = Trips)) + ggtitle("Heatmap of Uber Trips by Days of Months") + geom_tile(color = "white")
+##+ scale_fill_gradient(guide = "colourbar", low = "gray87", high = "gray35") + theme(legend.position = ##"none")
+```
+
+##Heatmap for Uber Trips by BASE and Day
+
+```{r}
+trips_base_wday <- group_by(uber_2014, Base, Weekday) %>% summarise(Trips = n())
+ggplot(trips_base_wday, aes(Base, Weekday, fill = Trips)) + ggtitle("Heatmap of Uber Trips by BASE and Day") + geom_tile(color = "white")
+```
+
+##Heatmap for Uber Trips by Base and Month
+
+```{r}
+ggplot(trips_base_month, aes(Base, Month, fill = Trips)) + ggtitle("Heatmap of Uber Trips by BASE and Month") + geom_tile(color = "white")
+```
+
+##*Synopsis*
+
+***Drawing the Inference from the above Analysis, we can state that***
+
+1. No. of Uber Trips increase as the Days progress in a month.
+
+2. The Month of **September, 2014** has seen the **most** Rides.
+
+3. The Time between **15hrs to 19hrs** has the **most** Rides. In other words the Trips increase in this Time frame.
+
+4. **Thursdays** and **Fridays** observe the **highest** amount of rides as compared to other days.
+
+5. **B02598** and **B02617** bases have the **most** amout of **rides** during Apr'14 to Sep'14.
+
+6. For **B02512** the no. of Rides have almost remained **constant**.
+
+7. *September* was the *best* month for **B02764** & **B02617**.
+
+8. *May* was the *best* month for **B02598**.
+
+9. *April* was the *best* month for **B02682**.
+
+10. The time between **0hrs to 4hrs** see the **least** number of rides.
+
+##Mapping the Uber Trips
+
+```{r, warning=FALSE}
+library(ggthemes) 
+min_lat <- 40.5774
+max_lat <- 40.9176
+min_long <- -74.15
+max_long <- -73.7004
+
+ggplot(uber_2014, aes(x=Lon, y=Lat, color = Base)) + geom_point(size = 0.06) + scale_x_continuous(limits=c(min_long, max_long)) +
+scale_y_continuous(limits=c(min_lat, max_lat)) + theme_map()
+```
